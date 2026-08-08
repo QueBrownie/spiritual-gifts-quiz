@@ -219,7 +219,7 @@
       <div class="scale" id="qScale" role="radiogroup" aria-label="How often is this true of you?"></div>
       <div class="nav-row">
         <button class="btn secondary" id="btnPrev">Back</button>
-        <span class="kbd-hint">Keys 1&ndash;5</span>
+        <span class="kbd-hint">Keys 1&ndash;5 to pick &middot; Enter for next</span>
         <button class="btn" id="btnNext" disabled>Next</button>
       </div>
     </div>
@@ -545,20 +545,14 @@ function render() {
   $("btnNext").textContent = (answered === questions.length && current === questions.length - 1) ? "See results" : "Next";
 }
 
-let advanceTimer = null;
 function choose(v) {
   answers[current] = v;
   render();
   save();
-  clearTimeout(advanceTimer);
-  if (current < questions.length - 1) {
-    advanceTimer = setTimeout(() => { current++; render(); save(); }, 200);
-  }
 }
 
 function next() {
   if (answers[current] === null) return;
-  clearTimeout(advanceTimer);
   if (current === questions.length - 1) {
     const missing = answers.findIndex(a => a === null);
     if (missing !== -1) { current = missing; render(); return; }
@@ -567,7 +561,7 @@ function next() {
   }
   current++; render(); save();
 }
-function prev() { clearTimeout(advanceTimer); if (current > 0) { current--; render(); save(); } }
+function prev() { if (current > 0) { current--; render(); save(); } }
 
 /* ---------- scoring ---------- */
 function mean(a) { return a.reduce((s, x) => s + x, 0) / a.length; }
