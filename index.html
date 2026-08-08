@@ -213,6 +213,22 @@
   th { color: var(--text-secondary); font-weight: 600; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
 
+  .examples {
+    margin-top: 14px; padding-top: 12px;
+    border-top: 1px solid var(--gridline);
+  }
+  .ex-head {
+    display: block; font-size: 0.7rem; font-weight: 700;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 6px;
+  }
+  .examples ul { margin: 0; padding-left: 18px; }
+  .examples li {
+    font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 4px;
+  }
+  .examples li::marker { color: var(--text-muted); }
+  .examples a { color: var(--accent-ink); font-weight: 600; white-space: nowrap; }
+
   .save-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
   .save-row .btn { flex: 1 1 auto; min-width: 150px; }
   #snapOut { margin-top: 14px; }
@@ -512,6 +528,87 @@ const GIFTS = [
 const ITEMS_PER_GIFT = 4;
 const STORE_KEY = "sgi.v2";
 
+/* People and passages showing each gift at work. The refs on the gifts
+   themselves are list proof-texts; these are the worked examples. */
+const GIFT_EXAMPLES = {
+  leadership: [
+    { t: "Nehemiah rallies Jerusalem to rebuild the wall", r: "Neh. 2:17-18" },
+    { t: "Moses is charged to lead Israel out of Egypt", r: "Ex. 3:10-12" }
+  ],
+  administration: [
+    { t: "Joseph organizes Egypt's grain through seven years of famine", r: "Gen. 41:39-49" },
+    { t: "Jethro tells Moses to delegate to capable men", r: "Ex. 18:13-26" }
+  ],
+  teaching: [
+    { t: "Ezra sets his heart to study, do, and teach the Law", r: "Ezra 7:10" },
+    { t: "Priscilla and Aquila explain the way of God more accurately to Apollos", r: "Acts 18:24-28" }
+  ],
+  knowledge: [
+    { t: "Daniel is given understanding of visions and dreams", r: "Dan. 1:17" },
+    { t: "The Bereans examine the Scriptures daily", r: "Acts 17:11" }
+  ],
+  wisdom: [
+    { t: "Solomon judges between the two mothers", r: "1 Kings 3:16-28" },
+    { t: "Stephen's opponents cannot withstand his wisdom", r: "Acts 6:10" }
+  ],
+  prophecy: [
+    { t: "Nathan confronts David: “You are the man”", r: "2 Sam. 12:1-13" },
+    { t: "Agabus foretells the coming famine", r: "Acts 11:27-28" }
+  ],
+  discernment: [
+    { t: "Peter sees through Ananias and Sapphira", r: "Acts 5:1-11" },
+    { t: "Paul discerns the spirit in the slave girl at Philippi", r: "Acts 16:16-18" }
+  ],
+  exhortation: [
+    { t: "Barnabas, “son of encouragement,” urges the church to remain faithful", r: "Acts 11:22-24" },
+    { t: "Stir one another up to love and good works", r: "Heb. 10:24-25" }
+  ],
+  shepherding: [
+    { t: "Jesus tells Peter three times to feed His sheep", r: "John 21:15-17" },
+    { t: "Elders are charged to shepherd the flock among them", r: "1 Pet. 5:1-4" }
+  ],
+  faith: [
+    { t: "Abraham sets out without knowing where he is going", r: "Heb. 11:8-12" },
+    { t: "Caleb: “we are well able to overcome it”", r: "Num. 13:30" }
+  ],
+  evangelism: [
+    { t: "Philip explains Isaiah to the Ethiopian official", r: "Acts 8:26-40" },
+    { t: "Andrew brings his brother Simon to Jesus", r: "John 1:40-42" }
+  ],
+  apostleship: [
+    { t: "The church at Antioch sends out Barnabas and Saul", r: "Acts 13:2-3" },
+    { t: "Paul aims to preach where Christ has not been named", r: "Rom. 15:20" }
+  ],
+  service: [
+    { t: "Tabitha is full of good works and makes clothing for widows", r: "Acts 9:36-39" },
+    { t: "Seven are chosen to wait on tables so the apostles can pray and preach", r: "Acts 6:1-7" }
+  ],
+  mercy: [
+    { t: "The Samaritan stops for the man left half dead", r: "Luke 10:30-37" },
+    { t: "Onesiphorus repeatedly refreshes Paul in prison", r: "2 Tim. 1:16-18" }
+  ],
+  giving: [
+    { t: "The Macedonian churches give beyond their means, and gladly", r: "2 Cor. 8:1-5" },
+    { t: "The widow puts in everything she had", r: "Mark 12:41-44" }
+  ],
+  hospitality: [
+    { t: "Lydia urges Paul's company to stay at her house", r: "Acts 16:14-15" },
+    { t: "Abraham runs to meet three strangers and feeds them", r: "Gen. 18:1-8" }
+  ]
+};
+
+const BIBLE_URL = "https://www.biblegateway.com/passage/?search=";
+function refLink(ref) {
+  return `<a href="${BIBLE_URL}${encodeURIComponent(ref)}" target="_blank" rel="noopener noreferrer">${ref.replace(/(\d)-(\d)/, "$1&ndash;$2")}</a>`;
+}
+function examplesHTML(key) {
+  const ex = GIFT_EXAMPLES[key];
+  if (!ex || !ex.length) return "";
+  return `<div class="examples"><span class="ex-head">Seen in Scripture</span><ul>` +
+    ex.map(e => `<li>${e.t} &mdash; ${refLink(e.r)}</li>`).join("") +
+    `</ul></div>`;
+}
+
 /* ---------- build the item list: shuffled, no two neighbours share a gift ---------- */
 function buildQuestions() {
   let qs = [];
@@ -757,7 +854,8 @@ function finish() {
       c.innerHTML = `<span class="chip">Strongest</span>
         <h3>${r.gift.name}</h3>
         <p>${r.gift.desc}</p>
-        <p class="ref">${r.gift.ref} &middot; raw ${r.raw} of ${R.maxRaw} &middot; ${r.z >= 0 ? "+" : "−"}${Math.abs(r.z).toFixed(1)} vs your average</p>`;
+        <p class="ref">${r.gift.ref} &middot; raw ${r.raw} of ${R.maxRaw} &middot; ${r.z >= 0 ? "+" : "−"}${Math.abs(r.z).toFixed(1)} vs your average</p>
+        ${examplesHTML(r.gift.key)}`;
       host.appendChild(c);
     });
   }
@@ -766,7 +864,8 @@ function finish() {
   const dl = $("allDefs");
   dl.innerHTML = "";
   GIFTS.forEach(g => {
-    dl.insertAdjacentHTML("beforeend", `<dt>${g.name}</dt><dd>${g.desc} <span class="ref">(${g.ref})</span></dd>`);
+    dl.insertAdjacentHTML("beforeend",
+      `<dt>${g.name}</dt><dd>${g.desc} <span class="ref">(${g.ref})</span>${examplesHTML(g.key)}</dd>`);
   });
 
   prepareSnapshot(R);
@@ -877,7 +976,15 @@ function buildSnapshotCanvas(R) {
       snapText(ctx, r.gift.name, PAD + 18, y + 24, { size: 27, weight: 600 });
       const w = ctx.measureText(r.gift.name).width;
       snapText(ctx, `${r.gift.ref}`, PAD + 30 + w, y + 23, { size: 18, color: SNAP.muted });
-      y += 38;
+      y += 32;
+      const ex = (GIFT_EXAMPLES[r.gift.key] || [])[0];
+      if (ex) {
+        snapWrap(ctx, ex.t + " — " + ex.r, W - PAD * 2 - 18, 19).forEach(l => {
+          snapText(ctx, l, PAD + 18, y + 14, { size: 19, color: SNAP.ink2 });
+          y += 24;
+        });
+      }
+      y += 10;
     });
     y += 12;
   }
@@ -1006,7 +1113,11 @@ function resultsAsText(R) {
     lines.push("No clear result: answers were too even across all 16 gifts.");
   } else {
     lines.push(R.topBand.length === 1 ? "Strongest gift:" : "Strongest gifts (too close to rank):");
-    R.topBand.forEach(r => lines.push("  • " + r.gift.name + " (" + r.gift.ref + ")"));
+    R.topBand.forEach(r => {
+      lines.push("  • " + r.gift.name + " (" + r.gift.ref + ")");
+      const ex = (GIFT_EXAMPLES[r.gift.key] || [])[0];
+      if (ex) lines.push("      " + ex.t + " — " + ex.r);
+    });
   }
   lines.push("");
   lines.push("Full profile — distance from my own average:");
