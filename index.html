@@ -169,6 +169,14 @@
   th { color: var(--text-secondary); font-weight: 600; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
 
+  .save-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .save-row .btn { flex: 1 1 auto; min-width: 150px; }
+  #snapOut { margin-top: 14px; }
+  #snapImg {
+    width: 100%; height: auto; display: block; margin-top: 8px;
+    border: 1px solid var(--border); border-radius: 8px;
+  }
+
   details { margin-top: 10px; }
   summary { cursor: pointer; font-weight: 600; color: var(--accent-ink); }
   details .body { padding-top: 10px; }
@@ -254,6 +262,20 @@
     </div>
 
     <div id="topGifts"></div>
+
+    <div class="card">
+      <h2>Save a snapshot</h2>
+      <p class="muted">Keep a copy of your results as an image &mdash; useful for saving to your phone or sending to someone.</p>
+      <div class="save-row">
+        <button class="btn" id="btnSaveImg">Save as image</button>
+        <button class="btn secondary" id="btnCopyText">Copy as text</button>
+      </div>
+      <p class="small muted" id="saveStatus" aria-live="polite"></p>
+      <div id="snapOut" class="hidden">
+        <p class="small" id="snapHint"></p>
+        <img id="snapImg" alt="Your spiritual gifts results as an image">
+      </div>
+    </div>
 
     <div class="card">
       <h2>What to do with this</h2>
@@ -610,6 +632,7 @@ function computeResults() {
 
 function finish() {
   const R = computeResults();
+  lastResults = R;
   show("results");
   window.scrollTo({ top: 0 });
 
@@ -697,7 +720,255 @@ function finish() {
     dl.insertAdjacentHTML("beforeend", `<dt>${g.name}</dt><dd>${g.desc} <span class="ref">(${g.ref})</span></dd>`);
   });
 
+  prepareSnapshot(R);
   clearSaved();
+}
+
+/* ---------- snapshot: a saveable PNG of the results ----------
+   Drawn manually so the page stays one self-contained file with no
+   third-party script, and so the image is always light-background and
+   phone-shaped regardless of the viewer's theme or screen. */
+let lastResults = null;
+let snapBlob = null, snapUrl = null, snapCanvas = null, snapDataUrl = null;
+const SNAP_NAME = "spiritual-gifts-results.png";
+
+const SNAP = {
+  bg: "#ffffff", ink: "#0b0b0b", ink2: "#52514e", muted: "#898781",
+  grid: "#e6e5df", base: "#c3c2b7", pos: "#2a78d6", neg: "#e34948", accent: "#184f95"
+};
+const snapFont = (weight, size) =>
+  `${weight} ${size}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+
+function snapText(ctx, s, x, y, o) {
+  o = o || {};
+  ctx.font = snapFont(o.weight || 400, o.size || 24);
+  ctx.fillStyle = o.color || SNAP.ink;
+  ctx.textAlign = o.align || "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(s, x, y);
+}
+
+function snapWrap(ctx, text, maxW, size, weight) {
+  ctx.font = snapFont(weight || 400, size);
+  const words = String(text).split(" ");
+  const lines = [];
+  let line = "";
+  words.forEach(w => {
+    const t = line ? line + " " + w : w;
+    if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; }
+    else line = t;
+  });
+  if (line) lines.push(line);
+  return lines;
+}
+
+function snapBar(ctx, x, y, w, h, r, roundRight) {
+  const rr = Math.max(0, Math.min(r, w));
+  ctx.beginPath();
+  if (roundRight) {
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w - rr, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+    ctx.lineTo(x + w, y + h - rr);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+    ctx.lineTo(x, y + h);
+  } else {
+    ctx.moveTo(x + w, y);
+    ctx.lineTo(x + rr, y);
+    ctx.quadraticCurveTo(x, y, x, y + rr);
+    ctx.lineTo(x, y + h - rr);
+    ctx.quadraticCurveTo(x, y + h, x + rr, y + h);
+    ctx.lineTo(x + w, y + h);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+function buildSnapshotCanvas(R) {
+  const W = 1000, S = 2, PAD = 60, MAXH = 2600;
+  const NAME_W = 250, PLOT_W = 460, VAL_W = 86, ROW_H = 34;
+  const x0 = Math.round((W - (NAME_W + PLOT_W + VAL_W)) / 2);
+  const plotL = x0 + NAME_W, plotC = plotL + PLOT_W / 2;
+
+  const draft = document.createElement("canvas");
+  draft.width = W * S; draft.height = MAXH * S;
+  const ctx = draft.getContext("2d");
+  ctx.scale(S, S);
+  ctx.fillStyle = SNAP.bg;
+  ctx.fillRect(0, 0, W, MAXH);
+
+  let y = PAD;
+
+  snapText(ctx, "Spiritual Gifts Inventory", PAD, y + 34, { size: 42, weight: 700 });
+  y += 56;
+  const when = new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+  snapText(ctx, when, PAD, y + 18, { size: 22, color: SNAP.muted });
+  y += 52;
+
+  const band = R.flat ? [] : R.topBand;
+  if (R.flat) {
+    snapText(ctx, "No clear result", PAD, y + 22, { size: 27, weight: 700 });
+    y += 40;
+    const msg = "Your answers came out too even across all 16 gifts for any of them to stand out. Treat the profile below as weak evidence at best.";
+    snapWrap(ctx, msg, W - PAD * 2, 21).forEach(l => {
+      snapText(ctx, l, PAD, y + 16, { size: 21, color: SNAP.ink2 });
+      y += 28;
+    });
+    y += 14;
+  } else {
+    snapText(ctx, band.length === 1 ? "Strongest gift" : "Strongest gifts", PAD, y + 22, { size: 27, weight: 700 });
+    y += 42;
+    if (band.length > 1) {
+      snapText(ctx, "Too close to separate — treat as a set, not a ranking.", PAD, y + 14, { size: 20, color: SNAP.muted });
+      y += 30;
+    }
+    band.forEach(r => {
+      ctx.fillStyle = SNAP.pos;
+      ctx.fillRect(PAD, y + 6, 5, 22);
+      snapText(ctx, r.gift.name, PAD + 18, y + 24, { size: 27, weight: 600 });
+      const w = ctx.measureText(r.gift.name).width;
+      snapText(ctx, `${r.gift.ref}`, PAD + 30 + w, y + 23, { size: 18, color: SNAP.muted });
+      y += 38;
+    });
+    y += 12;
+  }
+
+  // divider
+  ctx.fillStyle = SNAP.grid;
+  ctx.fillRect(PAD, y, W - PAD * 2, 1);
+  y += 26;
+
+  snapText(ctx, "Your profile", PAD, y + 20, { size: 24, weight: 700 });
+  y += 30;
+  snapText(ctx, "Distance from your own average response — compares you to yourself, not to others.",
+    PAD, y + 14, { size: 19, color: SNAP.muted });
+  y += 34;
+
+  const maxAbs = Math.max(1.0, Math.ceil(Math.max.apply(null, R.byGift.map(r => Math.abs(r.z))) * 2) / 2);
+  snapText(ctx, `−${maxAbs.toFixed(1)}`, plotL, y + 12, { size: 17, color: SNAP.muted });
+  snapText(ctx, "your average", plotC, y + 12, { size: 17, color: SNAP.muted, align: "center" });
+  snapText(ctx, `+${maxAbs.toFixed(1)}`, plotL + PLOT_W, y + 12, { size: 17, color: SNAP.muted, align: "right" });
+  y += 20;
+
+  const rowsTop = y;
+  R.byGift.forEach(r => {
+    const isTop = r.top && !R.flat;
+    snapText(ctx, r.gift.name, plotL - 14, y + 22, {
+      size: 20, align: "right",
+      weight: isTop ? 700 : 400,
+      color: isTop ? SNAP.ink : SNAP.ink2
+    });
+    const len = Math.abs(r.z) / maxAbs * (PLOT_W / 2);
+    ctx.fillStyle = r.z >= 0 ? SNAP.pos : SNAP.neg;
+    if (Math.abs(r.z) < 0.02) {
+      ctx.fillStyle = SNAP.base;
+      ctx.fillRect(plotC - 1, y + 9, 2, 14);
+    } else if (r.z > 0) {
+      snapBar(ctx, plotC, y + 9, len, 14, 4, true);
+    } else {
+      snapBar(ctx, plotC - len, y + 9, len, 14, 4, false);
+    }
+    snapText(ctx, `${r.z >= 0 ? "+" : "−"}${Math.abs(r.z).toFixed(1)}`, plotL + PLOT_W + VAL_W - 6, y + 22,
+      { size: 18, color: SNAP.muted, align: "right" });
+    y += ROW_H;
+  });
+
+  // baseline through the chart
+  ctx.fillStyle = SNAP.base;
+  ctx.fillRect(plotC - 0.5, rowsTop, 1, y - rowsTop);
+
+  y += 24;
+  ctx.fillStyle = SNAP.grid;
+  ctx.fillRect(PAD, y, W - PAD * 2, 1);
+  y += 26;
+
+  snapWrap(ctx, "A self-assessment, not a diagnosis. Confirm it with people who serve alongside you.",
+    W - PAD * 2, 19).forEach(l => {
+    snapText(ctx, l, PAD, y + 14, { size: 19, color: SNAP.ink2 });
+    y += 26;
+  });
+  // only when served over the web — on file:// there is no host and
+  // location.pathname would put a local disk path in a shared image
+  const host = location.host ? (location.host + location.pathname).replace(/\/+$/, "") : "";
+  if (host) {
+    snapText(ctx, host, PAD, y + 16, { size: 19, weight: 600, color: SNAP.accent });
+    y += 30;
+  }
+  y += PAD;
+
+  const H = Math.min(MAXH, Math.ceil(y));
+  const out = document.createElement("canvas");
+  out.width = W * S; out.height = H * S;
+  out.getContext("2d").drawImage(draft, 0, 0);
+  return out;
+}
+
+function prepareSnapshot(R) {
+  snapBlob = null; snapDataUrl = null;
+  if (snapUrl) { URL.revokeObjectURL(snapUrl); snapUrl = null; }
+  try {
+    snapCanvas = buildSnapshotCanvas(R);
+    // toBlob is async and may not have resolved by the time the button is
+    // tapped; snapFileSync() covers that case synchronously.
+    snapCanvas.toBlob(b => {
+      if (!b) return;
+      snapBlob = b;
+      snapUrl = URL.createObjectURL(b);
+    }, "image/png");
+  } catch (e) { snapCanvas = null; }
+}
+
+function snapEnsureDataUrl() {
+  if (snapDataUrl) return snapDataUrl;
+  if (!snapCanvas) return null;
+  try { snapDataUrl = snapCanvas.toDataURL("image/png"); } catch (e) { snapDataUrl = null; }
+  return snapDataUrl;
+}
+
+/* Build the File without awaiting anything — an await between the tap and
+   navigator.share() costs the user-activation Safari requires. */
+function snapFileSync() {
+  if (snapBlob) {
+    try { return new File([snapBlob], SNAP_NAME, { type: "image/png" }); } catch (e) { /* fall through */ }
+  }
+  const du = snapEnsureDataUrl();
+  if (!du || du.indexOf(",") === -1) return null;
+  try {
+    const bin = atob(du.slice(du.indexOf(",") + 1));
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new File([arr], SNAP_NAME, { type: "image/png" });
+  } catch (e) { return null; }
+}
+
+function revealInlineSnapshot() {
+  const href = snapUrl || snapEnsureDataUrl();
+  if (!href) return;
+  $("snapImg").src = href;
+  $("snapHint").textContent = "Press and hold the image below, then choose “Add to Photos” or “Save image”.";
+  $("snapOut").classList.remove("hidden");
+}
+
+function resultsAsText(R) {
+  const lines = [];
+  lines.push("Spiritual Gifts Inventory — " + new Date().toLocaleDateString());
+  lines.push("");
+  if (R.flat) {
+    lines.push("No clear result: answers were too even across all 16 gifts.");
+  } else {
+    lines.push(R.topBand.length === 1 ? "Strongest gift:" : "Strongest gifts (too close to rank):");
+    R.topBand.forEach(r => lines.push("  • " + r.gift.name + " (" + r.gift.ref + ")"));
+  }
+  lines.push("");
+  lines.push("Full profile — distance from my own average:");
+  R.byGift.forEach(r => {
+    const v = (r.z >= 0 ? "+" : "-") + Math.abs(r.z).toFixed(1);
+    lines.push("  " + String(v).padStart(4) + "  " + r.gift.name + "  (raw " + r.raw + "/" + R.maxRaw + ")");
+  });
+  lines.push("");
+  lines.push("A self-assessment, not a diagnosis.");
+  if (location.host) lines.push((location.host + location.pathname).replace(/\/+$/, ""));
+  return lines.join("\n");
 }
 
 /* ---------- wiring ---------- */
@@ -705,6 +976,76 @@ $("btnStart").addEventListener("click", () => begin(false));
 $("btnNext").addEventListener("click", next);
 $("btnPrev").addEventListener("click", prev);
 $("btnRestart").addEventListener("click", () => { clearSaved(); show("intro"); initIntro(); window.scrollTo({ top: 0 }); });
+
+$("btnSaveImg").addEventListener("click", () => {
+  const status = $("saveStatus");
+  if (!snapCanvas && lastResults) prepareSnapshot(lastResults);
+
+  const file = snapFileSync();
+  if (!file) {
+    status.textContent = "Couldn't build the image on this device — try “Copy as text”.";
+    return;
+  }
+
+  // Phones: hand it to the native share sheet, where "Save Image" /
+  // "Add to Photos" lives. Called with no await before it so the tap still
+  // counts as a user gesture.
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    status.textContent = "";
+    navigator.share({ files: [file], title: "My spiritual gifts results" })
+      .catch(err => {
+        if (err && err.name === "AbortError") return;   // user dismissed
+        revealInlineSnapshot();
+      });
+    return;
+  }
+
+  // Desktop, or no file sharing: download it
+  try {
+    const href = snapUrl || snapEnsureDataUrl();
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = SNAP_NAME;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    status.textContent = "Saved to your downloads.";
+  } catch (e) {
+    status.textContent = "";
+  }
+  revealInlineSnapshot();
+});
+
+$("btnCopyText").addEventListener("click", () => {
+  const status = $("saveStatus");
+  if (!lastResults) return;
+  const text = resultsAsText(lastResults);
+  const done = () => { status.textContent = "Copied — paste it anywhere."; };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => legacyCopy(text, status));
+  } else {
+    legacyCopy(text, status);
+  }
+});
+
+function legacyCopy(text, status) {
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "0";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand("copy");
+    ta.remove();
+    status.textContent = ok ? "Copied — paste it anywhere." : "Couldn't copy automatically — use “Save as image”.";
+  } catch (e) {
+    status.textContent = "Couldn't copy automatically — use “Save as image”.";
+  }
+}
 
 document.addEventListener("keydown", (e) => {
   if ($("screen-quiz").classList.contains("hidden")) return;
