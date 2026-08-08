@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spiritual Gifts Inventory</title>
+<style>
+  :root {
+    --bg: #f6f3ec;
+    --card: #ffffff;
+    --ink: #2b2620;
+    --muted: #6b6558;
+    --accent: #6d4aff;
+    --accent-dark: #4f32c9;
+    --gold: #c9972a;
+    --border: #e5e0d3;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+  header.hero {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  header.hero h1 {
+    font-size: 2rem;
+    margin-bottom: 6px;
+    color: var(--accent-dark);
+  }
+  header.hero p {
+    color: var(--muted);
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .btn {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 999px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  .btn:hover { background: var(--accent-dark); }
+  .btn:active { transform: scale(0.98); }
+  .btn.secondary {
+    background: transparent;
+    color: var(--accent-dark);
+    border: 1.5px solid var(--accent);
+  }
+  .btn.secondary:hover { background: #efeaff; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .center { text-align: center; }
+
+  #progressBar {
+    position: sticky;
+    top: 0;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    z-index: 10;
+  }
+  #progressFill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--gold));
+    transition: width 0.25s ease;
+  }
+
+  .section-title {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.78rem;
+    color: var(--accent-dark);
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .statement {
+    font-size: 1.15rem;
+    margin: 6px 0 20px;
+  }
+  .scale {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .scale label {
+    flex: 1;
+    min-width: 70px;
+    text-align: center;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--muted);
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+  .scale input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .scale label:hover { border-color: var(--accent); }
+  .scale input:checked + label,
+  .scale label.selected {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+  .scale-num {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+
+  .nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+  }
+  .qcount {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  /* Results */
+  .gift-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .gift-bar-label {
+    width: 150px;
+    flex-shrink: 0;
+    font-weight: 600;
+    font-size: 0.92rem;
+    text-align: right;
+  }
+  .gift-bar-track {
+    flex: 1;
+    background: var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    height: 22px;
+  }
+  .gift-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--gold));
+    border-radius: 8px;
+    width: 0%;
+    transition: width 0.8s ease;
+  }
+  .gift-bar-score {
+    width: 30px;
+    flex-shrink: 0;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .top-gift-card {
+    border: 2px solid var(--gold);
+    background: #fffaf0;
+  }
+  .top-gift-card h3 {
+    margin-top: 0;
+    color: var(--accent-dark);
+  }
+  .rank-badge {
+    display: inline-block;
+    background: var(--gold);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 999px;
+    margin-bottom: 8px;
+  }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.8rem;
+    margin-top: 40px;
+  }
+  a { color: var(--accent-dark); }
+
+  .hidden { display: none !important; }
+
+  details summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--accent-dark);
+  }
+  details {
+    margin-top: 8px;
+  }
+
+  @media (max-width: 480px) {
+    .gift-bar-label { width: 110px; font-size: 0.8rem; }
+    .scale label { min-width: 56px; padding: 10px 4px; font-size: 0.75rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>Spiritual Gifts Inventory</h1>
+    <p>Discover how God has uniquely gifted you to serve His church. Answer honestly, based on who you actually are &mdash; not who you wish you were.</p>
+  </header>
+
+  <div id="progressBar" class="hidden"><div id="progressFill"></div></div>
+
+  <!-- INTRO SCREEN -->
+  <div id="screen-intro" class="card">
+    <p><strong>How it works:</strong> You'll rate 48 short statements (3 for each of 16 spiritual gifts) on a scale from 0 to 3, based on how true each one is of you.</p>
+    <div class="scale" style="pointer-events:none; margin: 16px 0;">
+      <label><span class="scale-num">0</span>Never true</label>
+      <label><span class="scale-num">1</span>Rarely true</label>
+      <label><span class="scale-num">2</span>Often true</label>
+      <label><span class="scale-num">3</span>Consistently true</label>
+    </div>
+    <p>At the end, you'll see your top spiritual gifts along with what each one means and how it's used to build up the church.</p>
+    <p class="center" style="margin-top: 24px;">
+      <button class="btn" onclick="startQuiz()">Start the Inventory</button>
+    </p>
+  </div>
+
+  <!-- QUIZ SCREEN -->
+  <div id="screen-quiz" class="hidden">
+    <div class="card">
+      <div class="section-title" id="q-gift-label"></div>
+      <div class="statement" id="q-statement-text"></div>
+      <div class="scale" id="q-scale"></div>
+      <div class="nav-row">
+        <button class="btn secondary" id="btnPrev" onclick="prevQuestion()">Back</button>
+        <span class="qcount" id="qcount"></span>
+        <button class="btn" id="btnNext" onclick="nextQuestion()" disabled>Next</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="screen-results" class="hidden">
+    <div class="card">
+      <h2 style="margin-top:0;">Your Results</h2>
+      <p style="color:var(--muted)">Here's how you scored across all 16 gifts. Your top gifts are highlighted below with full descriptions.</p>
+      <div id="allBars" style="margin-top: 20px;"></div>
+    </div>
+
+    <div id="topGiftsContainer"></div>
+
+    <div class="card">
+      <details>
+        <summary>About these gifts &amp; sources</summary>
+        <p style="margin-top:12px;">Lists of spiritual gifts appear in Romans 12:6&ndash;8, 1 Corinthians 12:8&ndash;10 &amp; 28&ndash;30, Ephesians 4:11, and 1 Peter 4:9&ndash;11. Definitions adapted from <em>Jesus on Leadership: Developing Servant Leaders</em> by Gene Wilkes (LifeWay Christian Resources, 1998), drawing on definitions by Ken Hemphill and C. Peter Wagner.</p>
+      </details>
+    </div>
+
+    <p class="center">
+      <button class="btn secondary" onclick="restartQuiz()">Retake the Inventory</button>
+    </p>
+  </div>
+
+  <footer>
+    Spiritual Gifts Inventory &middot; runs entirely in your browser &mdash; no answers are stored or sent anywhere.
+  </footer>
+</div>
+
+<script>
+const GIFTS = [
+  {
+    key: "leadership",
+    name: "Leadership",
+    ref: "Rom. 12:8",
+    desc: "Leadership aids the body by leading and directing members to accomplish the goals and purposes of the church. Leadership motivates people to work together in unity toward common goals.",
+    statements: [
+      "People naturally look to me to set direction when a group is unsure what to do next.",
+      "I can cast a vision that motivates others to work together toward a shared goal.",
+      "I feel energized, not drained, when I'm responsible for guiding a team or project."
+    ]
+  },
+  {
+    key: "administration",
+    name: "Administration",
+    ref: "1 Cor. 12:28",
+    desc: "Persons with the gift of administration lead the body by steering others to remain on task. Administration enables the body to organize according to God-given purposes and long-term goals.",
+    statements: [
+      "I enjoy creating systems, plans, or schedules that keep a group organized and on track.",
+      "Others come to me to help turn a big idea into clear, workable steps.",
+      "I notice inefficiencies in how a ministry or team operates and know how to fix them."
+    ]
+  },
+  {
+    key: "teaching",
+    name: "Teaching",
+    ref: "1 Cor. 12:28; Rom. 12:7; Eph. 4:11",
+    desc: "Teaching is instructing members in the truths and doctrines of God's Word for the purposes of building up, unifying, and maturing the body.",
+    statements: [
+      "I enjoy studying Scripture deeply enough to explain it clearly to others.",
+      "People tell me I help them understand the Bible better than they did before.",
+      "I naturally organize information in a way that makes it easier for others to learn."
+    ]
+  },
+  {
+    key: "knowledge",
+    name: "Knowledge",
+    ref: "1 Cor. 12:8",
+    desc: "The gift of knowledge manifests itself in teaching and training in discipleship. It is the God-given ability to learn, know, and explain the precious truths of God's Word.",
+    statements: [
+      "I have a hunger to research and understand biblical truth in depth.",
+      "I often sense insight about a situation or Scripture that helps clarify things for others.",
+      "People seek me out for a well-grounded, biblically informed answer to hard questions."
+    ]
+  },
+  {
+    key: "wisdom",
+    name: "Wisdom",
+    ref: "1 Cor. 12:8",
+    desc: "Wisdom is the gift that discerns the work of the Holy Spirit in the body and applies His teachings and actions to the needs of the body.",
+    statements: [
+      "I can take a complicated situation and see a wise, practical way through it.",
+      "People come to me for guidance on how to apply biblical truth to real-life problems.",
+      "I can sense the right course of action even when the situation is unclear to others."
+    ]
+  },
+  {
+    key: "prophecy",
+    name: "Prophecy",
+    ref: "1 Cor. 12:10; Rom. 12:6",
+    desc: "The gift of prophecy is proclaiming the Word of God boldly. This builds up the body and leads to conviction of sin. Prophecy manifests itself in preaching and teaching.",
+    statements: [
+      "I feel compelled to speak truth boldly, even when it's unpopular or uncomfortable.",
+      "My words have led others to recognize sin or change direction in their life.",
+      "I'm drawn to proclaiming God's Word in a way that confronts and calls people forward."
+    ]
+  },
+  {
+    key: "discernment",
+    name: "Discernment",
+    ref: "1 Cor. 12:10",
+    desc: "Discernment aids the body by recognizing the true intentions of those within or related to the body. Discernment tests the message and actions of others for the protection and well-being of the body.",
+    statements: [
+      "I can sense when something is spiritually off, even before others notice.",
+      "I'm quick to recognize whether a teaching or message lines up with truth.",
+      "People trust my read on whether someone's motives or actions are genuine."
+    ]
+  },
+  {
+    key: "exhortation",
+    name: "Exhortation",
+    ref: "Rom. 12:8",
+    desc: "Possessors of this gift encourage members to be involved in and enthusiastic about the work of the Lord. Members with this gift are good counselors and motivate others to service.",
+    statements: [
+      "I love encouraging people who are discouraged or ready to give up.",
+      "People often say a conversation with me left them motivated to take action.",
+      "I naturally counsel others toward practical next steps in their faith or life."
+    ]
+  },
+  {
+    key: "shepherding",
+    name: "Shepherding",
+    ref: "Eph. 4:11",
+    desc: "The gift of shepherding is manifested in people who look out for the spiritual welfare of others. This gift is not limited to a pastor or staff member.",
+    statements: [
+      "I feel a deep sense of responsibility for the spiritual well-being of people close to me.",
+      "I enjoy walking alongside the same group of people over a long period of time.",
+      "I notice when someone in my circle is spiritually struggling before they say anything."
+    ]
+  },
+  {
+    key: "faith",
+    name: "Faith",
+    ref: "1 Cor. 12:9",
+    desc: "Faith trusts God to work beyond the human capabilities of the people. Believers with this gift encourage others to trust in God in the face of apparently insurmountable odds.",
+    statements: [
+      "I remain confident God will act even when circumstances look impossible.",
+      "Others draw strength from my trust in God during difficult seasons.",
+      "I'm willing to step out on a God-given conviction before I can see how it will work out."
+    ]
+  },
+  {
+    key: "evangelism",
+    name: "Evangelism",
+    ref: "Eph. 4:11",
+    desc: "God gifts his church with evangelists to lead others to Christ effectively and enthusiastically. This gift builds up the body by adding new members to its fellowship.",
+    statements: [
+      "I look for natural opportunities to talk with people about Jesus.",
+      "I feel a strong urgency for people who don't yet know Christ to hear the gospel.",
+      "I've personally helped lead people to a decision to follow Christ."
+    ]
+  },
+  {
+    key: "apostleship",
+    name: "Apostleship",
+    ref: "1 Cor. 12:28; Eph. 4:11",
+    desc: "The church sends apostles from the body to plant churches or be missionaries. Apostles motivate the body to look beyond its walls in order to carry out the Great Commission.",
+    statements: [
+      "I feel drawn to starting new ministries, churches, or works from scratch.",
+      "I'm comfortable adapting to unfamiliar cultures or contexts to share the gospel.",
+      "I think often about reaching people and places the church hasn't yet reached."
+    ]
+  },
+  {
+    key: "service",
+    name: "Service / Helps",
+    ref: "1 Cor. 12:28; Rom. 12:7",
+    desc: "Those with the gift of service/helps recognize practical needs in the body and joyfully give assistance to meeting those needs. Christians with this gift do not mind working behind the scenes.",
+    statements: [
+      "I notice practical needs before anyone asks and jump in to meet them.",
+      "I'm content doing behind-the-scenes work that nobody else sees or applauds.",
+      "I feel most fulfilled when I'm freeing others up by handling practical tasks."
+    ]
+  },
+  {
+    key: "mercy",
+    name: "Mercy",
+    ref: "Rom. 12:8",
+    desc: "Cheerful acts of compassion characterize those with the gift of mercy. Persons with this gift aid the body by empathizing with hurting members and keeping others aware of needs within the church.",
+    statements: [
+      "I feel others' pain deeply and am drawn to comfort people who are hurting.",
+      "I'm the person people call first when they're going through something hard.",
+      "I show compassion cheerfully, without resentment, even when it costs me time or energy."
+    ]
+  },
+  {
+    key: "giving",
+    name: "Giving",
+    ref: "Rom. 12:8",
+    desc: "Members with the gift of giving give freely and joyfully to the work and mission of the body. Cheerfulness and liberality are characteristics of individuals with this gift.",
+    statements: [
+      "I find real joy in giving generously, even sacrificially, to support God's work.",
+      "I look for opportunities to fund needs or ministries beyond my normal giving.",
+      "I manage my resources intentionally so I can give more freely."
+    ]
+  },
+  {
+    key: "hospitality",
+    name: "Hospitality",
+    ref: "1 Pet. 4:9",
+    desc: "Those with this gift make visitors, guests, and strangers feel at ease. They often use their home to entertain guests and help integrate new members into the body.",
+    statements: [
+      "I enjoy opening my home to guests, visitors, or newcomers.",
+      "I go out of my way to make new or unfamiliar people feel welcome and comfortable.",
+      "I notice when someone seems like an outsider and work to include them."
+    ]
+  }
+];
+
+const SCALE_LABELS = ["Never true", "Rarely true", "Often true", "Consistently true"];
+
+// Build flat list of {giftIndex, statementIndex, text}
+let questions = [];
+GIFTS.forEach((g, gi) => {
+  g.statements.forEach((s, si) => {
+    questions.push({ giftIndex: gi, text: s });
+  });
+});
+
+let current = 0;
+let answers = new Array(questions.length).fill(null);
+
+const screenIntro = document.getElementById('screen-intro');
+const screenQuiz = document.getElementById('screen-quiz');
+const screenResults = document.getElementById('screen-results');
+const progressBar = document.getElementById('progressBar');
+const progressFill = document.getElementById('progressFill');
+
+function startQuiz() {
+  screenIntro.classList.add('hidden');
+  screenQuiz.classList.remove('hidden');
+  progressBar.classList.remove('hidden');
+  current = 0;
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = questions[current];
+  const gift = GIFTS[q.giftIndex];
+  document.getElementById('q-gift-label').textContent = gift.name;
+  document.getElementById('q-statement-text').textContent = q.text;
+  document.getElementById('qcount').textContent = `${current + 1} / ${questions.length}`;
+
+  const scaleEl = document.getElementById('q-scale');
+  scaleEl.innerHTML = '';
+  for (let val = 0; val <= 3; val++) {
+    const id = `opt-${current}-${val}`;
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = `q${current}`;
+    input.id = id;
+    input.value = val;
+    if (answers[current] === val) input.checked = true;
+    input.addEventListener('change', () => selectAnswer(val));
+
+    const label = document.createElement('label');
+    label.setAttribute('for', id);
+    label.innerHTML = `<span class="scale-num">${val}</span>${SCALE_LABELS[val]}`;
+
+    scaleEl.appendChild(input);
+    scaleEl.appendChild(label);
+  }
+
+  document.getElementById('btnPrev').disabled = current === 0;
+  document.getElementById('btnNext').disabled = answers[current] === null;
+  document.getElementById('btnNext').textContent = current === questions.length - 1 ? 'See Results' : 'Next';
+
+  progressFill.style.width = `${(current / questions.length) * 100}%`;
+}
+
+function selectAnswer(val) {
+  answers[current] = val;
+  document.getElementById('btnNext').disabled = false;
+}
+
+function nextQuestion() {
+  if (answers[current] === null) return;
+  if (current === questions.length - 1) {
+    showResults();
+    return;
+  }
+  current++;
+  renderQuestion();
+}
+
+function prevQuestion() {
+  if (current === 0) return;
+  current--;
+  renderQuestion();
+}
+
+function computeScores() {
+  const scores = GIFTS.map(() => 0);
+  questions.forEach((q, i) => {
+    scores[q.giftIndex] += answers[i] || 0;
+  });
+  return scores;
+}
+
+function showResults() {
+  screenQuiz.classList.add('hidden');
+  progressBar.classList.add('hidden');
+  screenResults.classList.remove('hidden');
+
+  const scores = computeScores();
+  const maxScore = 9; // 3 statements x 3 points
+  const ranked = GIFTS.map((g, i) => ({ gift: g, score: scores[i] }))
+    .sort((a, b) => b.score - a.score);
+
+  // All bars, in ranked order
+  const allBars = document.getElementById('allBars');
+  allBars.innerHTML = '';
+  ranked.forEach(({ gift, score }) => {
+    const row = document.createElement('div');
+    row.className = 'gift-bar-row';
+    row.innerHTML = `
+      <div class="gift-bar-label">${gift.name}</div>
+      <div class="gift-bar-track"><div class="gift-bar-fill" style="width:${(score / maxScore) * 100}%"></div></div>
+      <div class="gift-bar-score">${score}/${maxScore}</div>
+    `;
+    allBars.appendChild(row);
+  });
+
+  // Top gifts: those tied for the highest score, or top 3 if scores vary
+  const topScore = ranked[0].score;
+  let topGifts = ranked.filter(r => r.score === topScore);
+  if (topGifts.length < 3) {
+    topGifts = ranked.slice(0, 3);
+  }
+
+  const container = document.getElementById('topGiftsContainer');
+  container.innerHTML = '<div class="card" style="border:none; background:transparent; box-shadow:none; padding-bottom:0;"><h2 style="margin-bottom:4px;">Your Top Gifts</h2></div>';
+  topGifts.forEach((r, idx) => {
+    const card = document.createElement('div');
+    card.className = 'card top-gift-card';
+    card.innerHTML = `
+      <span class="rank-badge">#${idx + 1}</span>
+      <h3>${r.gift.name}</h3>
+      <p>${r.gift.desc}</p>
+      <p style="color:var(--muted); font-size:0.85rem; margin-bottom:0;">${r.gift.ref} &middot; Score: ${r.score}/${maxScore}</p>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function restartQuiz() {
+  answers = new Array(questions.length).fill(null);
+  current = 0;
+  screenResults.classList.add('hidden');
+  screenIntro.classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
