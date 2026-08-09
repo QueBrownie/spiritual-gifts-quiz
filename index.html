@@ -147,17 +147,16 @@
   .scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
   .opt {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 3px; min-height: 74px; padding: 8px 4px;
+    gap: 3px; min-height: 60px; padding: 8px 4px;
     background: transparent;
     border: 1.5px solid var(--gridline); border-radius: 10px;
-    font: inherit; font-size: 0.76rem; color: var(--text-secondary);
+    font: inherit; font-size: 0.86rem; color: var(--text-secondary);
     text-align: center; cursor: pointer;
   }
   .opt:hover { border-color: var(--accent); }
   .opt[aria-checked="true"] {
     background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600;
   }
-  .opt .n { font-size: 1.05rem; font-weight: 700; }
   .nav-row { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; gap: 12px; }
   .kbd-hint { font-size: 0.76rem; color: var(--text-muted); }
 
@@ -247,7 +246,7 @@
 
   @media (max-width: 520px) {
     .row .name, .axis-head .lbl { width: 96px; font-size: 0.76rem; }
-    .opt { font-size: 0.62rem; min-height: 68px; }
+    .opt { font-size: 0.72rem; min-height: 56px; }
     .statement { font-size: 1.08rem; }
   }
 </style>
@@ -698,7 +697,7 @@ function render() {
     b.className = "opt";
     b.setAttribute("role", "radio");
     b.setAttribute("aria-checked", answers[current] === v ? "true" : "false");
-    b.innerHTML = `<span class="n">${v}</span><span>${SCALE_LABELS[v]}</span>`;
+    b.innerHTML = `<span>${SCALE_LABELS[v]}</span>`;
     b.addEventListener("click", () => choose(v));
     scale.appendChild(b);
   }
